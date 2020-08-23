@@ -25,7 +25,7 @@ export default function Home() {
     };
 
     const onDragStart = (e: React.DragEvent<HTMLImageElement>) => {
-        dragUrl.current = e.target.src;
+        dragUrl.current = e.currentTarget.src;
     };
 
     return (
