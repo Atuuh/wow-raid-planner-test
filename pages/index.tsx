@@ -4,7 +4,7 @@ import konva from "konva";
 import useImage from "use-image";
 import { KonvaEventObject } from "konva/types/Node";
 import { Vector2d } from "konva/types/types";
-import { Input } from "./input";
+import { Input } from "../components/input";
 
 type Object = Vector2d & {
     src: string;
