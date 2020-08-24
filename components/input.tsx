@@ -1,28 +1,65 @@
 import { useRef, useState } from "react";
+import * as t from "io-ts";
+import { pipe, flow } from "fp-ts/lib/function";
+import {
+    fold,
+    left,
+    chain,
+    map,
+    parseJSON,
+    mapLeft,
+    Either,
+    Json,
+} from "fp-ts/lib/Either";
+import { PathReporter } from "io-ts/PathReporter";
+import { GreaterThanNumber } from "./greaterThanNumber";
 
-type Event =
-    | React.FormEvent<HTMLFormElement>
-    | React.ClipboardEvent<HTMLFormElement>;
+const mapDecodeError: <A extends unknown>(
+    value: Either<t.Errors, A>
+) => Either<string, A> = mapLeft((errors) =>
+    PathReporter.report(left(errors)).join("\n")
+);
+
+const decodeUser: (user: Either<string, Json>) => Either<string, User> = flow(
+    chain((u) => pipe(t.exact(User).decode(u), mapDecodeError))
+);
+
 export const Input = () => {
     const ref = useRef<HTMLInputElement>();
     const [data, setData] = useState("");
+    const [errors, setErrors] = useState("");
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setData(ref.current.value);
-    };
+        setData("");
+        setErrors("");
 
-    let v: any;
-    try {
-        v = JSON.parse(data);
-    } catch (e) {}
+        pipe(
+            decodeURI(ref.current.value),
+            (s) => parseJSON(s, () => "Error parsing JSON"),
+            decodeUser,
+            map((user) => JSON.stringify(user, null, 2)),
+            fold(setErrors, setData)
+        );
+    };
 
     return (
         <form onSubmit={handleSubmit}>
             <input type="text" ref={ref} />
-            <pre>{JSON.stringify(v, null, 2)}</pre>
+            <pre>
+                Data: <br />
+                {data}
+            </pre>
+            <pre>
+                Errors: <br />
+                {errors}
+            </pre>
         </form>
     );
 };
 
-const parseData = (json: string) => {};
+const User = t.type({
+    name: t.string,
+    age: GreaterThanNumber(18),
+});
+type User = t.TypeOf<typeof User>;
